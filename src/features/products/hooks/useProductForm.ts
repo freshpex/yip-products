@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Product, ProductFormData } from '../types';
 import { validateProductForm } from '../utils/validation';
 import { useProductStore } from '../../../app/store/useProductStore';
+import { MAX_PRODUCT_IMAGES, ALLOWED_IMAGE_TYPES } from '../../../constants';
 
 interface UseProductFormOptions {
   existingProduct?: Product;
@@ -23,7 +24,7 @@ export function useProductForm({ existingProduct, onSuccess }: UseProductFormOpt
     () => ({
       name: existingProduct?.name ?? '',
       price: existingProduct ? String(existingProduct.price) : '',
-      imageUri: existingProduct?.imageUri ?? null,
+      imageUris: existingProduct?.imageUris ?? [],
     }),
     [existingProduct]
   );
@@ -39,7 +40,8 @@ export function useProductForm({ existingProduct, onSuccess }: UseProductFormOpt
   const isDirty =
     form.name !== initialForm.name ||
     form.price !== initialForm.price ||
-    form.imageUri !== initialForm.imageUri;
+    form.imageUris.length !== initialForm.imageUris.length ||
+    form.imageUris.some((uri, i) => uri !== initialForm.imageUris[i]);
 
   const setField = useCallback(
     <K extends keyof ProductFormData>(field: K, value: ProductFormData[K]) => {
@@ -57,6 +59,8 @@ export function useProductForm({ existingProduct, onSuccess }: UseProductFormOpt
   );
 
   const pickImage = useCallback(async () => {
+    if (form.imageUris.length >= MAX_PRODUCT_IMAGES) return;
+
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(
@@ -72,13 +76,22 @@ export function useProductForm({ existingProduct, onSuccess }: UseProductFormOpt
     });
 
     if (!result.canceled && result.assets[0]) {
-      setField('imageUri', result.assets[0].uri);
+      const asset = result.assets[0];
+      const mimeType = (asset.mimeType ?? '').toLowerCase();
+      if (mimeType && !(ALLOWED_IMAGE_TYPES as readonly string[]).includes(mimeType)) {
+        Alert.alert('Unsupported Format', 'Please select a JPEG, PNG, or WebP image.');
+        return;
+      }
+      setForm((prev) => ({ ...prev, imageUris: [...prev.imageUris, asset.uri] }));
     }
-  }, [setField]);
+  }, [form.imageUris]);
 
-  const removeImage = useCallback(() => {
-    setField('imageUri', null);
-  }, [setField]);
+  const removeImage = useCallback((index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      imageUris: prev.imageUris.filter((_, i) => i !== index),
+    }));
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (submitLockRef.current) return;
@@ -96,7 +109,7 @@ export function useProductForm({ existingProduct, onSuccess }: UseProductFormOpt
       const productData = {
         name: form.name.trim(),
         price: parseFloat(form.price.replace(/,/g, '').trim()),
-        imageUri: form.imageUri,
+        imageUris: form.imageUris,
       };
 
       let success: boolean;

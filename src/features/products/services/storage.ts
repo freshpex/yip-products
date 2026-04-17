@@ -10,10 +10,38 @@ function isValidProduct(value: unknown): value is Product {
     typeof obj.name === 'string' &&
     typeof obj.price === 'number' &&
     Number.isFinite(obj.price) &&
-    (obj.imageUri === null || typeof obj.imageUri === 'string') &&
+    Array.isArray(obj.imageUris) &&
+    (obj.imageUris as unknown[]).every((u) => typeof u === 'string') &&
     typeof obj.createdAt === 'number' &&
     typeof obj.updatedAt === 'number'
   );
+}
+
+function migrateProduct(value: unknown): Product | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const obj = value as Record<string, unknown>;
+
+  if (isValidProduct(obj)) return obj as unknown as Product;
+  if (
+    typeof obj.id === 'string' &&
+    typeof obj.name === 'string' &&
+    typeof obj.price === 'number' &&
+    Number.isFinite(obj.price) &&
+    typeof obj.createdAt === 'number' &&
+    typeof obj.updatedAt === 'number'
+  ) {
+    const imageUris: string[] = typeof obj.imageUri === 'string' ? [obj.imageUri] : [];
+    return {
+      id: obj.id,
+      name: obj.name,
+      price: obj.price,
+      imageUris,
+      createdAt: obj.createdAt as number,
+      updatedAt: obj.updatedAt as number,
+    };
+  }
+
+  return null;
 }
 
 export async function loadProducts(): Promise<Product[]> {
@@ -29,8 +57,7 @@ export async function loadProducts(): Promise<Product[]> {
 
   if (!Array.isArray(parsed)) return [];
 
-  // Filter out any corrupted entries rather than crashing
-  return parsed.filter(isValidProduct);
+  return parsed.map(migrateProduct).filter((p): p is Product => p !== null);
 }
 
 export async function saveProducts(products: Product[]): Promise<void> {
