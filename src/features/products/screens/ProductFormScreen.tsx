@@ -15,6 +15,19 @@ import { ImagePickerButton } from '../../../components/product';
 import { spacing } from '../../../theme';
 import { PRODUCT_NAME_MAX } from '../../../constants';
 
+// Format number string with thousands commas, preserving decimal entry
+function formatPriceInput(text: string): string {
+  const stripped = text.replace(/,/g, '');
+  const endsWithDot = stripped.endsWith('.');
+  const [intRaw = '', decRaw] = stripped.split('.');
+  const intDigits = intRaw.replace(/\D/g, '');
+  const decDigits = decRaw != null ? decRaw.replace(/\D/g, '').slice(0, 2) : null;
+  const formattedInt = intDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  if (decDigits !== null) return `${formattedInt}.${decDigits}`;
+  if (endsWithDot) return `${formattedInt}.`;
+  return formattedInt;
+}
+
 type FormRoute = RouteProp<RootStackParamList, 'ProductForm'>;
 
 export function ProductFormScreen() {
@@ -36,6 +49,7 @@ export function ProductFormScreen() {
     isSubmitting,
     isEditing,
     isDirty,
+    submittedRef,
     setField,
     pickImage,
     removeImage,
@@ -47,7 +61,7 @@ export function ProductFormScreen() {
 
   // Warn on unsaved changes when navigating back
   const confirmDiscard = useCallback(() => {
-    if (!isDirty) {
+    if (!isDirty || submittedRef.current) {
       navigation.goBack();
       return;
     }
@@ -56,15 +70,22 @@ export function ProductFormScreen() {
       'You have unsaved changes. Are you sure you want to go back?',
       [
         { text: 'Keep Editing', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => {
+            submittedRef.current = true;
+            navigation.goBack();
+          },
+        },
       ]
     );
-  }, [isDirty, navigation]);
+  }, [isDirty, navigation, submittedRef]);
 
   // Intercept back navigation (header, gesture, and hardware back)
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
-      if (!isDirty) return;
+      if (!isDirty || submittedRef.current) return;
       e.preventDefault();
       Alert.alert(
         'Discard Changes?',
@@ -111,7 +132,7 @@ export function ProductFormScreen() {
             label="Price ($)"
             placeholder="e.g. 29.99"
             value={form.price}
-            onChangeText={(text) => setField('price', text)}
+            onChangeText={(text) => setField('price', formatPriceInput(text))}
             error={errors.price}
             keyboardType="decimal-pad"
             returnKeyType="done"

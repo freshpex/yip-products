@@ -33,6 +33,7 @@ export function useProductForm({ existingProduct, onSuccess }: UseProductFormOpt
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitLockRef = useRef(false);
+  const submittedRef = useRef(false);
 
   // Track whether the form has been modified
   const isDirty =
@@ -67,8 +68,6 @@ export function useProductForm({ existingProduct, onSuccess }: UseProductFormOpt
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
       quality: 0.8,
     });
 
@@ -96,7 +95,7 @@ export function useProductForm({ existingProduct, onSuccess }: UseProductFormOpt
     try {
       const productData = {
         name: form.name.trim(),
-        price: parseFloat(form.price.trim()),
+        price: parseFloat(form.price.replace(/,/g, '').trim()),
         imageUri: form.imageUri,
       };
 
@@ -108,6 +107,7 @@ export function useProductForm({ existingProduct, onSuccess }: UseProductFormOpt
       }
 
       if (success) {
+        submittedRef.current = true;
         onSuccessRef.current();
       } else {
         Alert.alert(
@@ -131,6 +131,7 @@ export function useProductForm({ existingProduct, onSuccess }: UseProductFormOpt
     isSubmitting,
     isEditing,
     isDirty,
+    submittedRef,
     setField,
     pickImage,
     removeImage,

@@ -21,7 +21,7 @@ The app is built with **Expo**, **TypeScript**, **Zustand**, and **React Navigat
 | Persistence | Products saved to AsyncStorage, restored on app launch |
 | Empty State | Friendly placeholder UI when no products exist |
 | Validation | Inline form errors for name and price fields |
-| Image Handling | Photo picker with preview, change, and remove |
+| Image Handling | Photo picker with preview, change, and remove. `resizeMode: 'cover'` handles layout. |
 
 ---
 
@@ -102,7 +102,7 @@ In a real product catalog, not all items have photos immediately available. Maki
 
 **Implementation details:**
 - Photos are stored as local URI strings (e.g., `file:///...`)
-- Images are cropped to 1:1 aspect ratio for consistent card layouts
+- The native crop step is skipped — `ProductCard` uses `resizeMode: 'cover'` on a fixed 80×80 container, so any photo fills the square correctly without a separate crop UI (which also has reliability issues on some Android devices)
 - Quality is set to 0.8 to balance visual fidelity and storage size
 - Permission is requested the first time the picker opens
 - Users can change or remove a photo after selection
@@ -122,8 +122,17 @@ interface ValidationResult {
 ```
 
 **Validation rules:**
-- **Name**: Required, 2–50 characters
+- **Name**: Required, 2–50 characters (bounds defined in `constants/` — single source of truth)
 - **Price**: Required, must be a positive number, max $999,999.99, up to 2 decimal places
+
+**Price input formatting:**
+- As the user types, thousands commas are inserted automatically (`1000` → `1,000`, `33356` → `33,356`)
+- A `formatPriceInput` helper handles the transformation while preserving mid-entry states (e.g. `1,000.` while the user is still typing decimals)
+- Before validation and `parseFloat`, commas are stripped so `"1,000.50"` parses correctly as `1000.50`
+- Handles Android keyboards that emit a comma as the decimal separator — normalized to a period before processing
+
+**Display formatting:**
+- Prices are rendered with `toLocaleString('en-US', { minimumFractionDigits: 2 })` so `$33356` displays as `$33,356.00`
 
 **UX considerations:**
 - Errors are shown **on submit**, not on every keystroke (avoids "yelling" at the user while typing)
@@ -133,6 +142,12 @@ interface ValidationResult {
 ---
 
 ## UX Choices
+
+### Character Count
+The product name input shows a live character count (e.g. `12/50`) in the label row. It turns amber when the user is within 10% of the 50-character limit — subtle feedback before they hit the wall.
+
+### Price Formatting
+The price field formats thousands automatically as the user types (`33356` → `33,356`), matching how prices appear everywhere else in the app. This removes cognitive friction when entering large prices and prevents confusion about whether a number was entered correctly.
 
 ### Empty State
 A friendly illustration with clear copy guides first-time users. The add button is prominent and accessible without scrolling.
@@ -145,6 +160,8 @@ Destructive actions always require explicit confirmation via a native alert dial
 
 ### Unsaved Changes Protection
 If the user modifies a form field and tries to navigate back (header back button or Android hardware back), a confirmation dialog appears: "Discard Changes?" This prevents accidental data loss, which is particularly important on mobile where accidental swipe-back gestures are common.
+
+Importantly, this guard is bypassed when the form was **successfully submitted** — a `submittedRef` flag is set before calling `navigation.goBack()` so the "Discard Changes?" dialog never appears after a clean save.
 
 ### Keyboard Handling
 The form screen uses `KeyboardAvoidingView` and `ScrollView` with `keyboardShouldPersistTaps="handled"` so users can scroll while the keyboard is open and dismiss it naturally.
@@ -177,6 +194,8 @@ Product images are stored as local file URIs. If a URI becomes invalid (cache cl
 | Unsaved form changes + back | Confirmation dialog prevents accidental data loss |
 | Edit without breaking limit | Edit doesn't count against the max |
 | Delete then re-add | Counter updates correctly, add button re-enables |
+| Comma decimal separator (Android) | Price input normalizes `,` → `.` before parsing |
+| Successful submit triggers Discard dialog | `submittedRef` flag suppresses the guard after a clean save |
 | App restart | Products fully restored from AsyncStorage |
 
 ---
