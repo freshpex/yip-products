@@ -1,5 +1,7 @@
 export const MAX_PRODUCTS = 5;
 export const STORAGE_KEY = '@yip_products';
+export const MAX_PRODUCT_IMAGES = 4;
+export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'] as const;
 
 export const PRODUCT_NAME_MIN = 2;
 export const PRODUCT_NAME_MAX = 50;

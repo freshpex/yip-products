@@ -2,7 +2,7 @@ export interface Product {
   id: string;
   name: string;
   price: number;
-  imageUri: string | null;
+  imageUris: string[];
   createdAt: number;
   updatedAt: number;
 }
@@ -10,5 +10,5 @@ export interface Product {
 export type ProductFormData = {
   name: string;
   price: string;
-  imageUri: string | null;
+  imageUris: string[];
 };

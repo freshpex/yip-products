@@ -7,28 +7,42 @@ interface ProductCardProps {
   product: Product;
   onPress: () => void;
   onDelete: () => void;
+  onImagePress?: () => void;
 }
 
 export const ProductCard = React.memo(function ProductCard({
   product,
   onPress,
   onDelete,
+  onImagePress,
 }: ProductCardProps) {
   const [imageError, setImageError] = useState(false);
-  const showImage = !!product.imageUri && !imageError;
+  const firstImage = product.imageUris?.[0];
+  const imageCount = product.imageUris?.length ?? 0;
+  const showImage = !!firstImage && !imageError;
+
+  const formattedPrice = product.price.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={onPress}
-      activeOpacity={0.7}
-      accessibilityRole="button"
-      accessibilityLabel={`${product.name}, $${product.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Tap to edit`}
-    >
-      <View style={styles.imageContainer}>
+    <View style={styles.card}>
+      {/* Image area — tap opens gallery if images exist */}
+      <TouchableOpacity
+        style={styles.imageContainer}
+        onPress={imageCount > 0 && onImagePress ? onImagePress : onPress}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={
+          imageCount > 0
+            ? `${imageCount} photo${imageCount > 1 ? 's' : ''} for ${product.name}. Tap to view.`
+            : product.name
+        }
+      >
         {showImage ? (
           <Image
-            source={{ uri: product.imageUri! }}
+            source={{ uri: firstImage }}
             style={styles.image}
             onError={() => setImageError(true)}
             accessibilityLabel={`Photo of ${product.name}`}
@@ -38,13 +52,27 @@ export const ProductCard = React.memo(function ProductCard({
             <Text style={styles.placeholderIcon} accessibilityElementsHidden>📷</Text>
           </View>
         )}
-      </View>
-      <View style={styles.info}>
+        {imageCount > 1 && (
+          <View style={styles.imageBadge}>
+            <Text style={styles.imageBadgeText}>📷 {imageCount}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      {/* Info area — tap to edit */}
+      <TouchableOpacity
+        style={styles.info}
+        onPress={onPress}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${product.name}, $${formattedPrice}. Tap to edit`}
+      >
         <Text style={styles.name} numberOfLines={1}>
           {product.name}
         </Text>
-        <Text style={styles.price}>${product.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
-      </View>
+        <Text style={styles.price}>${formattedPrice}</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity
         style={styles.deleteButton}
         onPress={onDelete}
@@ -54,7 +82,7 @@ export const ProductCard = React.memo(function ProductCard({
       >
         <Text style={styles.deleteText}>✕</Text>
       </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   );
 });
 
@@ -72,6 +100,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: 80,
     height: 80,
+    position: 'relative',
   },
   image: {
     width: 80,
@@ -88,10 +117,26 @@ const styles = StyleSheet.create({
   placeholderIcon: {
     fontSize: 28,
   },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  imageBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
   info: {
     flex: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
+    alignSelf: 'stretch',
+    justifyContent: 'center',
   },
   name: {
     ...typography.body,
@@ -113,3 +158,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+

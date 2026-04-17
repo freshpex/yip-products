@@ -133,14 +133,14 @@ export function ProductFormScreen() {
             placeholder="e.g. 29.99"
             value={form.price}
             onChangeText={(text) => setField('price', formatPriceInput(text))}
-            error={errors.price}
+              error={errors.price}
             keyboardType="decimal-pad"
             returnKeyType="done"
           />
 
           <ImagePickerButton
-            imageUri={form.imageUri}
-            onPickImage={pickImage}
+            imageUris={form.imageUris}
+            onAddImage={pickImage}
             onRemoveImage={removeImage}
           />
 
