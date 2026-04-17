@@ -23,7 +23,7 @@ export const ProductCard = React.memo(function ProductCard({
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={`${product.name}, $${product.price.toFixed(2)}. Tap to edit`}
+      accessibilityLabel={`${product.name}, $${product.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Tap to edit`}
     >
       <View style={styles.imageContainer}>
         {showImage ? (
@@ -43,7 +43,7 @@ export const ProductCard = React.memo(function ProductCard({
         <Text style={styles.name} numberOfLines={1}>
           {product.name}
         </Text>
-        <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+        <Text style={styles.price}>${product.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
       </View>
       <TouchableOpacity
         style={styles.deleteButton}

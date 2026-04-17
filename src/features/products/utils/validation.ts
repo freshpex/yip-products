@@ -21,17 +21,18 @@ export function validateProductForm(name: string, price: string): ValidationResu
   }
 
   const trimmedPrice = price.trim();
+  const numericPrice = trimmedPrice.replace(/,/g, '');
   if (!trimmedPrice) {
     errors.price = 'Price is required';
   } else {
-    const numPrice = parseFloat(trimmedPrice);
+    const numPrice = parseFloat(numericPrice);
     if (isNaN(numPrice)) {
       errors.price = 'Please enter a valid number';
     } else if (numPrice <= 0) {
       errors.price = 'Price must be greater than 0';
     } else if (numPrice > PRODUCT_PRICE_MAX) {
-      errors.price = `Price cannot exceed $${PRODUCT_PRICE_MAX.toLocaleString()}`;
-    } else if (!/^\d+(\.\d{1,2})?$/.test(trimmedPrice)) {
+      errors.price = `Price cannot exceed $${PRODUCT_PRICE_MAX.toLocaleString('en-US')}`;
+    } else if (!/^\d+(\.\d{1,2})?$/.test(numericPrice)) {
       errors.price = 'Price can have at most 2 decimal places';
     }
   }
